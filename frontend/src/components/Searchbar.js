@@ -25,7 +25,23 @@ const SearchBar = () => {
 
   // Function to handle search
   const onSearch = (searchFields) => {
-    console.log("Search Fields: ", searchFields);
+    // Send the searchFields to the backend
+    fetch("https://localhost.com/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(searchFields),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Success:", data);
+        // Handle the response data here
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        // Handle the error here
+      });
   };
 
   return (
