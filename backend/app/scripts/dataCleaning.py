@@ -33,19 +33,19 @@ def stem_words(word: str) -> str:
     doc = nlp(word)
     tag = doc[0].pos_
     if tag == "NOUN":
-        return stemmer.stem_word(word, "NNM")
+        return stemmer.stem_word(word, "NNM").lower()
 
     elif tag == "VERB":
-        return stemmer.stem_word(word, "VB")
+        return stemmer.stem_word(word, "VB").lower()
 
     elif tag == "PROPN":
-        return stemmer.stem_word(word, "PRP")
+        return stemmer.stem_word(word, "PRP").lower()
 
     elif tag == "ADJ" or tag == "ADV":
-        return stemmer.stem_word(word, "JJM")
+        return stemmer.stem_word(word, "JJM").lower()
 
     else:
-        return stemmer.stem_word(word, "NNM")
+        return stemmer.stem_word(word, "NNM").lower()
 
 # Clean the speeches
 def clean_dataset(dataframe):
