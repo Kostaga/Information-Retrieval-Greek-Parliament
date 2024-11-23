@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from scripts.stopwords import STOPWORDS
+from scripts.dataCleaning  import remove_punctuation_and_numbers, stem_words, to_lowercase
 
 # Create a Flask app
 app = Flask(__name__)
@@ -14,26 +16,29 @@ def get_data():
     return jsonify({"message": "API is working!"})
 
 
-# @app.route('/search', methods=['POST'])
-# def search():
-#     data = request.json
-#     name = data.get('name', '')
-#     date = data.get('date', '')
-#     political_party = data.get('politicalParty', '')
-#     keywords = data.get('keywords', '')
+@app.route('/search', methods=['POST'])
+def search():
+    data = request.json
+    if not data:
+        return jsonify({"Error ": "Invalid JSON"}),400
+    
+    name = data.get('name', '')
+    date = data.get('date', '')
+    political_party = data.get('politicalParty', '')
+    keywords = data.get('keywords', '')
+    keywords = keywords.apply(to_lowercase)
+    keywords = keywords.apply(lambda x: ' '.join([remove_punctuation_and_numbers(word) for word in x.split()]))
+    keywords = keywords.apply(lambda x: ' '.join([stem_words(word) for word in x.split()]))
+    
+    print(name,date,political_party,keywords)
 
-#     results = df.copy()
-#     if name:
-#         results = results[results['name'].str.contains(name, na=False)]
-#     if date:
-#         results = results[results['date'] == date]
-#     if political_party:
-#         results = results[results['political_party'].str.contains(political_party, na=False)]
-#     if keywords:
-#         results = results[results['speech'].str.contains(keywords, na=False)]
-
-#     # Return the filtered results
-#     return results.head(10).to_json(orient='records')
+    return jsonify({
+        "name": name,
+        "date": date,
+        "political_party": political_party,
+        "keywords": keywords
+    })
+  
 
 
 

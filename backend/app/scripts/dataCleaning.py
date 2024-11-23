@@ -3,7 +3,6 @@ import re
 from stopwords import STOPWORDS
 import spacy
 from greek_stemmer import stemmer
-
 # Load the spaCy model
 try:
     nlp = spacy.load("el_core_news_sm")
@@ -24,6 +23,7 @@ def remove_punctuation_and_numbers(word: str) -> str:
     cleaned_word = re.sub(r'[^α-ωΑ-Ω]', '', word)
     if (cleaned_word == " " or len(cleaned_word) == 1 or cleaned_word in STOPWORDS):
         return ""
+
     return cleaned_word
         
 
@@ -33,32 +33,31 @@ def stem_words(word: str) -> str:
     doc = nlp(word)
     tag = doc[0].pos_
     if tag == "NOUN":
-        return stemmer.stem_word(word, "NNM")
+        return stemmer.stem_word(word, "NNM").lower()
 
     elif tag == "VERB":
-        return stemmer.stem_word(word, "VB")
+        return stemmer.stem_word(word, "VB").lower()
 
     elif tag == "PROPN":
-        return stemmer.stem_word(word, "PRP")
+        return stemmer.stem_word(word, "PRP").lower()
 
     elif tag == "ADJ" or tag == "ADV":
-        return stemmer.stem_word(word, "JJM")
+        return stemmer.stem_word(word, "JJM").lower()
 
     else:
-        return stemmer.stem_word(word, "NNM")
+        return stemmer.stem_word(word, "NNM").lower()
 
 # Clean the speeches
 def clean_dataset(dataframe):
     """Clean the speeches and return the updated DataFrame"""
     
-    dataframe.drop(columns=['government', 'member_region', 'roles','parliamentary_sitting','parliamentary_session'], inplace=True)
+    dataframe.drop(columns=['government', 'parliamentary_period', 'member_region', 'roles','parliamentary_sitting','parliamentary_session'], inplace=True)
     dataframe.dropna(subset=['member_name',], inplace=True)
-
-    dataframe['speech'] = dataframe['speech'].apply(to_lowercase)
+    dataframe['clean_speech'] = dataframe['speech'].apply(to_lowercase)
 
     # Remove punctuation and numerical values
-    dataframe['speech'] = dataframe['speech'].apply(lambda x: ' '.join([remove_punctuation_and_numbers(word) for word in x.split()]))
-    dataframe['speech'] = dataframe['speech'].apply(lambda x: ' '.join([stem_words(word) for word in x.split()]))
+    dataframe['clean_speech'] = dataframe['clean_speech'].apply(lambda x: ' '.join([remove_punctuation_and_numbers(word) for word in x.split()]))
+    dataframe['clean_speech'] = dataframe['clean_speech'].apply(lambda x: ' '.join([stem_words(word) for word in x.split()]))
 
     
 
@@ -68,6 +67,6 @@ def clean_dataset(dataframe):
 
 
 # Clean the data and display the cleaned DataFrame
-cleaned_data = clean_dataset(df)
-cleaned_data.to_csv('cleaned_data.csv', index=False)
+df = clean_dataset(df)
+df.to_csv('cleaned_data.csv', index=False)
 
