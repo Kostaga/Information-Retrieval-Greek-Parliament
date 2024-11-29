@@ -3,6 +3,7 @@ import re
 from stopwords import STOPWORDS
 import spacy
 from greek_stemmer import stemmer
+import os
 # Load the spaCy model
 try:
     nlp = spacy.load("el_core_news_sm")
@@ -10,8 +11,12 @@ except Exception as e:
     print("Please run this: python -m spacy download el_core_news_sm")
     exit(1)
 
+# Determine the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+csv_path = os.path.join(script_dir, 'data_sample.csv')
+
 # Read the CSV file
-df = pd.read_csv('data_sample.csv')
+df = pd.read_csv(csv_path)
 
 # Transform to lowercase every speech
 def to_lowercase(text):
@@ -59,6 +64,10 @@ def clean_dataset(dataframe):
     dataframe['clean_speech'] = dataframe['clean_speech'].apply(lambda x: ' '.join([remove_punctuation_and_numbers(word) for word in x.split()]))
     dataframe['clean_speech'] = dataframe['clean_speech'].apply(lambda x: ' '.join([stem_words(word) for word in x.split()]))
 
+
+    # Clean the data and display the cleaned DataFrame
+    print("Creating the cleaned_data.csv file...")
+    df.to_csv('cleaned_data.csv', index=False)
     
 
     return dataframe
@@ -66,7 +75,5 @@ def clean_dataset(dataframe):
 
 
 
-# Clean the data and display the cleaned DataFrame
-df = clean_dataset(df)
-df.to_csv('cleaned_data.csv', index=False)
+
 
