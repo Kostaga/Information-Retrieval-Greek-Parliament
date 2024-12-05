@@ -15,8 +15,7 @@ except Exception as e:
 script_dir = os.path.dirname(os.path.abspath(__file__))
 csv_path = os.path.join(script_dir, 'data_sample.csv')
 
-# Read the CSV file
-df = pd.read_csv(csv_path)
+
 
 # Transform to lowercase every speech
 def to_lowercase(text):
@@ -25,7 +24,9 @@ def to_lowercase(text):
 # Remove punctuation and numerical values
 def remove_punctuation_and_numbers(word: str) -> str:
     # remove unwanted characters such as numbers, punctuation, etc.
-    cleaned_word = re.sub(r'[^α-ωΑ-Ω]', '', word)
+    # cleaned_word = re.sub(r'[^α-ωΑ-Ω]', '', word)
+    # include the greek alphabet with and without accents
+    cleaned_word = re.sub(r'[^α-ωάέήίόύώΑ-ΩΆΈΉΊΌΎΏ]', '', word)
     if (cleaned_word == " " or len(cleaned_word) == 1 or cleaned_word in STOPWORDS):
         return ""
 
@@ -57,23 +58,28 @@ def clean_dataset(dataframe):
     """Clean the speeches and return the updated DataFrame"""
     
     dataframe.drop(columns=['government', 'parliamentary_period', 'member_region', 'roles','parliamentary_sitting','parliamentary_session'], inplace=True)
-    dataframe.dropna(subset=['member_name',], inplace=True)
+    dataframe.dropna(subset=['member_name', ], inplace=True)
     dataframe['clean_speech'] = dataframe['speech'].apply(to_lowercase)
 
     # Remove punctuation and numerical values
     dataframe['clean_speech'] = dataframe['clean_speech'].apply(lambda x: ' '.join([remove_punctuation_and_numbers(word) for word in x.split()]))
     dataframe['clean_speech'] = dataframe['clean_speech'].apply(lambda x: ' '.join([stem_words(word) for word in x.split()]))
+    
 
+    # Remove clean speech null values
+    dataframe['clean_speech'].replace('', pd.NA, inplace=True)
+    dataframe.dropna(subset=['clean_speech'], inplace=True)
 
     # Clean the data and display the cleaned DataFrame
-    print("Creating the cleaned_data.csv file...")
     df.to_csv('cleaned_data.csv', index=False)
     
 
     return dataframe
 
 
-
+# Read the CSV file
+df = pd.read_csv(csv_path)
+clean_dataset(df)
 
 
 

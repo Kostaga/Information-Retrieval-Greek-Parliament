@@ -1,30 +1,34 @@
 import pandas as pd
 import os
-from dataCleaning import clean_dataset
+from dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pickle
 import math
 
+# Determine the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+csv_path = os.path.join(script_dir, 'cleaned_data.csv')
 
-if not os.path.exists("cleaned_data.csv"):
+if not os.path.exists(csv_path):
     print("cleaned_data.csv not found. Creating the file...")
     df = pd.read_csv("data_sample.csv")
     clean_dataset(df)
     print("File created!")
+    df = pd.read_csv(csv_path)
 else:
-    df = pd.read_csv("cleaned_data.csv")
+    df = pd.read_csv(csv_path)
 
 
 
 def create_inverted_index() -> dict:
     '''Creates an inverted index for the cleaned data and saves it to a pickle file'''
-    # Read the cleaned data
-   
+  
     print("Creating the inverted index...")
     inverted_index = {}
 
     for index, row in df.iterrows():
         words = row['clean_speech'].split()
+        
         for word in words:
             if word not in inverted_index:
                 # maps words to a list of indexes containing the word and their term frequency.
@@ -62,22 +66,163 @@ def calculate_tf_idf(inverted_index: dict, total_documents: int) -> dict:
             else:
                 tfidf[index][word] = tf * idf
 
+    with open('tf_idf.pkl', 'wb') as f:
+        pickle.dump(tfidf, f)
+
+
     return tfidf
 
-inverted_index = create_inverted_index()
-tf_idf = calculate_tf_idf(inverted_index, len(df['clean_speech']))
-print(tf_idf)
-print("-----------------")
-def calculate_tf_idf2():
-    '''Calculates the term frequency-inverse document frequency for the cleaned data'''
-    # create object
-    tfidf = TfidfVectorizer()
+
+def find_keyword(matching_docs, value: str, inverted_index: dict) -> set:
+    # Preprocess and find keyword matches
+    processed_keywords = [
+        stem_words(remove_punctuation_and_numbers(word))
+        for word in value
+    ]
+    print(f"Processed keywords: {processed_keywords}")
+    # Find the indexes of the keywords in the inverted index
+    keyword_indexes = [
+        set(inverted_index[word].keys()) for word in processed_keywords if word in inverted_index
+    ]
+    print(keyword_indexes)
+    # Intersect all keyword matches
+    if keyword_indexes:
+        matching_docs &= set.intersection(*keyword_indexes)
     
-    # get tf-df values
-    tfidf.fit_transform(df['clean_speech'])
-    # get idf values
-    print('\nidf values:')
-    for ele1, ele2 in zip(tfidf.get_feature_names_out(), tfidf.idf_):
-        print(ele1, ':', ele2)
+    return matching_docs
+
+
+def create_table(df: pd.DataFrame):
+    # Create inverted index and TF-IDF values if they do not exist
+    if not os.path.exists("inverted_index.pkl" or "tf_idf.pkl"):
+        print("Creating the inverted_index and tf_idf tables...")
+        inverted_index = create_inverted_index()
+        tf_idf = calculate_tf_idf(inverted_index, len(df['clean_speech']))
+            
+    else:
+        # Otherwise, load the existing files
+        with open('inverted_index.pkl', 'rb') as f:
+            inverted_index = pickle.load(f)
+        with open('tf_idf.pkl', 'rb') as f:
+            tf_idf = pickle.load(f)
+
+    return inverted_index, tf_idf
+
+def search(
+    df: pd.DataFrame,
+    name: str = None,
+    date: str = None,
+    political_party: str = None,
+    keywords: str = None
+) -> list:
+    """
+    Searches the cleaned data for the query fields provided by the user.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing the cleaned speeches.
+        name (str): Name to search for.
+        date (str): Date to search for.
+        political_party (str): Political party to search for.
+        keywords (str): String of comma-separated keywords to search for.
+        
+    Returns:
+        list: A ranked list of document IDs and their TF-IDF scores.
+    """
+    
+    # Create inverted index and TF-IDF values if they do not exist
+    inverted_index, tf_idf = create_table(df)
+
+    # Combine fields into a dictionary for dynamic processing
+    query_fields = {
+        "member_name": name.lower() if name else None,
+        "sitting_date": date if date else None,
+        "political_party": political_party.lower() if political_party else None,
+        "keywords": [k.strip() for k in keywords.split(",")] if keywords else None
+    }
+
+    # Initialize the result set with all possible document IDs
+    all_docs = set(tf_idf.keys())
+    matching_docs = all_docs  # Start with the broadest match
+
+    # Process each field
+    for field, value in query_fields.items():
+        if not value:
+            continue
+
+        if field == "keywords":
+            # For keyword fields, preprocess and find keyword matches
+            matching_docs = find_keyword(matching_docs, value, inverted_index)
+        else:
+            # For single-value fields like name, date, and political_party
+            field_indexes = df[df[field] == value].index.tolist()
+            matching_docs &= set(field_indexes)
+        
+        print(f"Matching documents for {field}: {len(matching_docs)}")
+
+    print(f"Final matching documents: {len(matching_docs)}")
+    
+    # Find the cosine similarity between the query and the documents and get top-5 results
+    top_docs = find_cosine_similarity(tf_idf, matching_docs, query_fields["keywords"])
+
+    # Sort the results by similarity score and return the top-5 documents
+    return top_docs
+    
+
+def find_cosine_similarity(tf_idf: dict, matching_docs: set, keywords: list) -> list:
+    '''Finds the cosine similarity between the query keywords and the documents'''
+    query_vector = {}
+    for keyword in keywords:
+        for doc_id in matching_docs:
+            if keyword in tf_idf[doc_id]:
+                if keyword not in query_vector:
+                    query_vector[keyword] = tf_idf[doc_id][keyword]
+                else:
+                    query_vector[keyword] += tf_idf[doc_id][keyword]
+
+    # Calculate cosine similarity
+    cosine_similarities = []
+    for doc_id in matching_docs:
+        doc_vector = tf_idf[doc_id]
+        dot_product = sum(query_vector.get(word, 0) * doc_vector.get(word, 0) for word in query_vector)
+        query_norm = math.sqrt(sum(val ** 2 for val in query_vector.values()))
+        doc_norm = math.sqrt(sum(val ** 2 for val in doc_vector.values()))
+        if query_norm * doc_norm != 0:
+            cosine_similarity = dot_product / (query_norm * doc_norm)
+            cosine_similarities.append((doc_id, cosine_similarity))
+
+    # Sort documents by similarity score in descending order
+    cosine_similarities.sort(key=lambda x: x[1], reverse=True)
+    return cosine_similarities[:5]
+
+# Find the cosine similarity between the query and the documents and get top-5 results
+if query_fields["keywords"]:
+    top_docs = find_cosine_similarity(tf_idf, matching_docs, query_fields["keywords"])
+else:
+    top_docs = [(doc_id, 0) for doc_id in matching_docs]
+
+return top_docs
+
+
+    
+
+
+# inverted_index = create_inverted_index()
+# print(inverted_index)
+# tf_idf = calculate_tf_idf(inverted_index, len(df['clean_speech']))
+
+
+print(search(df,"", "", "", "αγία,σοφία"))
+print("-----------------")
+# def calculate_tf_idf2():
+#     '''Calculates the term frequency-inverse document frequency for the cleaned data'''
+#     # create object
+#     tfidf = TfidfVectorizer()
+    
+#     # get tf-df values
+#     tfidf.fit_transform(df['clean_speech'])
+#     # get idf values
+#     print('\nidf values:')
+#     for ele1, ele2 in zip(tfidf.get_feature_names_out(), tfidf.idf_):
+#         print(ele1, ':', ele2)
 # create_inverted_index()
 # calculate_tf_idf2()
