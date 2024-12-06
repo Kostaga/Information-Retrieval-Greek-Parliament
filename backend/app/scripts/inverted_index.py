@@ -4,6 +4,9 @@ from dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_num
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pickle
 import math
+from collections import defaultdict
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 # Determine the directory of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -130,7 +133,7 @@ def search(
     """
     
     # Create inverted index and TF-IDF values if they do not exist
-    inverted_index, tf_idf = create_table(df)
+    _ , tf_idf = create_table(df)
 
     # Combine fields into a dictionary for dynamic processing
     query_fields = {
@@ -140,9 +143,18 @@ def search(
         "keywords": [k.strip() for k in keywords.split(",")] if keywords else None
     }
 
+    
+    
+
     # Initialize the result set with all possible document IDs
     all_docs = set(tf_idf.keys())
     matching_docs = all_docs  # Start with the broadest match
+    
+    # Preprocess and find keyword matches
+    processed_keywords = [
+        stem_words(remove_punctuation_and_numbers(word))
+        for word in query_fields["keywords"]
+    ]
 
     # Process each field
     for field, value in query_fields.items():
@@ -150,8 +162,9 @@ def search(
             continue
 
         if field == "keywords":
-            # For keyword fields, preprocess and find keyword matches
-            matching_docs = find_keyword(matching_docs, value, inverted_index)
+            # For keyword fields, calculate the cosine similarity
+            similar_docs = find_cosine_similarity(tf_idf, matching_docs, processed_keywords)
+            matching_docs = set(doc_id for doc_id, _ in similar_docs)
         else:
             # For single-value fields like name, date, and political_party
             field_indexes = df[df[field] == value].index.tolist()
@@ -162,45 +175,43 @@ def search(
     print(f"Final matching documents: {len(matching_docs)}")
     
     # Find the cosine similarity between the query and the documents and get top-5 results
-    top_docs = find_cosine_similarity(tf_idf, matching_docs, query_fields["keywords"])
+    # top_docs = find_cosine_similarity(tf_idf, matching_docs, query_fields["keywords"])
 
     # Sort the results by similarity score and return the top-5 documents
-    return top_docs
+    return matching_docs
     
 
 def find_cosine_similarity(tf_idf: dict, matching_docs: set, keywords: list) -> list:
     '''Finds the cosine similarity between the query keywords and the documents'''
-    query_vector = {}
+  
+    # Create a vector for the query keywords
+    query_vector = defaultdict(float)
     for keyword in keywords:
         for doc_id in matching_docs:
             if keyword in tf_idf[doc_id]:
-                if keyword not in query_vector:
-                    query_vector[keyword] = tf_idf[doc_id][keyword]
-                else:
-                    query_vector[keyword] += tf_idf[doc_id][keyword]
+                query_vector[keyword] += tf_idf[doc_id][keyword]
+    
+    # Normalize the query vector
+    query_vector = np.array(list(query_vector.values()))
+    query_vector = query_vector / np.linalg.norm(query_vector)
 
-    # Calculate cosine similarity
-    cosine_similarities = []
+    print(f"Query vector: {query_vector}")
+    
+    # Calculate cosine similarity for each document
+    similarities = []
     for doc_id in matching_docs:
-        doc_vector = tf_idf[doc_id]
-        dot_product = sum(query_vector.get(word, 0) * doc_vector.get(word, 0) for word in query_vector)
-        query_norm = math.sqrt(sum(val ** 2 for val in query_vector.values()))
-        doc_norm = math.sqrt(sum(val ** 2 for val in doc_vector.values()))
-        if query_norm * doc_norm != 0:
-            cosine_similarity = dot_product / (query_norm * doc_norm)
-            cosine_similarities.append((doc_id, cosine_similarity))
-
+        doc_vector = np.array([tf_idf[doc_id].get(keyword, 0) for keyword in keywords])
+        if np.linalg.norm(doc_vector) == 0:
+            continue
+        doc_vector = doc_vector / np.linalg.norm(doc_vector)
+        similarity = cosine_similarity([query_vector], [doc_vector])[0][0]
+        similarities.append((doc_id, similarity))
+    
     # Sort documents by similarity score in descending order
-    cosine_similarities.sort(key=lambda x: x[1], reverse=True)
-    return cosine_similarities[:5]
+    similarities.sort(key=lambda x: x[1], reverse=True)
+    
+    return similarities
 
-# Find the cosine similarity between the query and the documents and get top-5 results
-if query_fields["keywords"]:
-    top_docs = find_cosine_similarity(tf_idf, matching_docs, query_fields["keywords"])
-else:
-    top_docs = [(doc_id, 0) for doc_id in matching_docs]
-
-return top_docs
 
 
     
@@ -211,7 +222,7 @@ return top_docs
 # tf_idf = calculate_tf_idf(inverted_index, len(df['clean_speech']))
 
 
-print(search(df,"", "", "", "αγία,σοφία"))
+print(search(df,"σκρεκας θεοδωρου κωνσταντινος", "", "", "αγία,σοφία"))
 print("-----------------")
 # def calculate_tf_idf2():
 #     '''Calculates the term frequency-inverse document frequency for the cleaned data'''
