@@ -1,9 +1,10 @@
 import pandas as pd
 import re
-from stopwords import STOPWORDS
+from scripts.stopwords import STOPWORDS
 import spacy
 from greek_stemmer import stemmer
 import os
+import unicodedata
 # Load the spaCy model
 try:
     nlp = spacy.load("el_core_news_sm")
@@ -24,9 +25,16 @@ def to_lowercase(text):
 # Remove punctuation and numerical values
 def remove_punctuation_and_numbers(word: str) -> str:
     # remove unwanted characters such as numbers, punctuation, etc.
-    # cleaned_word = re.sub(r'[^α-ωΑ-Ω]', '', word)
     # include the greek alphabet with and without accents
-    cleaned_word = re.sub(r'[^α-ωάέήίόύώΑ-ΩΆΈΉΊΌΎΏ]', '', word)
+    word = word.lower()
+
+
+    word = ''.join(
+        c for c in unicodedata.normalize('NFD', word) 
+        if unicodedata.category(c) != 'Mn'
+    )
+
+    cleaned_word = re.sub(r'[^α-ω]', '', word)
     if (cleaned_word == " " or len(cleaned_word) == 1 or cleaned_word in STOPWORDS):
         return ""
 
