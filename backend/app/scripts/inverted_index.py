@@ -4,6 +4,13 @@ import pickle
 import math
 from collections import defaultdict
 import os
+from sqlalchemy import create_engine, inspect
+from scripts.database import engine
+
+def table_exists(engine, table_name):
+    inspector = inspect(engine)
+    return table_name in inspector.get_table_names()
+
 
 
 def create_inverted_index(df) -> dict:
@@ -26,11 +33,7 @@ def create_inverted_index(df) -> dict:
                     inverted_index[word][index] = 1
 
 
-    
-    print("Inverted index created!")
-
-    with open('inverted_index.pkl', 'wb') as f:
-        pickle.dump(inverted_index, f)
+    save_inverted_index_to_sql(inverted_index, engine)
     
     return inverted_index
 
@@ -52,9 +55,9 @@ def calculate_tf_idf(inverted_index: dict, total_documents: int) -> dict:
             else:
                 tfidf[index][word] = tf * idf
 
-    with open('tf_idf.pkl', 'wb') as f:
-        pickle.dump(tfidf, f)
 
+    save_tf_idf_to_sql(tfidf, engine)
+    
 
     return tfidf
 
@@ -78,18 +81,80 @@ def find_keyword(matching_docs, value: str, inverted_index: dict) -> set:
     return matching_docs
 
 
-def create_table(df: pd.DataFrame):
-    # Create inverted index and TF-IDF values if they do not exist
-    if not os.path.exists("inverted_index.pkl" or "tf_idf.pkl"):
-        print("Creating the inverted_index and tf_idf tables...")
-        inverted_index = create_inverted_index(df)
-        tf_idf = calculate_tf_idf(inverted_index, len(df['clean_speech']))
-            
+def ensure_table(df: pd.DataFrame, table_name: str) -> dict:
+    """Ensures the table exists in the database and returns its data."""
+    if not table_exists(engine, table_name):
+        print(f"Table '{table_name}' does not exist. Creating...")
+        if table_name == 'inverted_index':
+            data = create_inverted_index(df)  # Creates and saves the inverted index
+        elif table_name == 'tf_idf':
+            inverted_index = ensure_table(df, 'inverted_index')  # Ensures the inverted index exists
+            data = calculate_tf_idf(inverted_index, len(df))  # Calculates and saves TF-IDF
+        else:
+            raise ValueError("Invalid table name. Must be 'inverted_index' or 'tf_idf'")
     else:
-        # Otherwise, load the existing files
-        with open('inverted_index.pkl', 'rb') as f:
-            inverted_index = pickle.load(f)
-        with open('tf_idf.pkl', 'rb') as f:
-            tf_idf = pickle.load(f)
+        print(f"Loading table '{table_name}' from database...")
+        if table_name == 'inverted_index':
+            data = load_inverted_index_from_sql(engine)
+        elif table_name == 'tf_idf':
+            data = load_tf_idf_from_sql(engine)
+        else:
+            raise ValueError("Invalid table name. Must be 'inverted_index' or 'tf_idf'")
+            
+    return data
 
-    return inverted_index, tf_idf
+
+
+
+def save_inverted_index_to_sql(inverted_index, engine):
+    # Convert the inverted index dictionary to a DataFrame
+    data = []
+    for word, doc_dict in inverted_index.items():
+        for doc_id, term_freq in doc_dict.items():
+            data.append({'word': word, 'document_id': doc_id, 'term_frequency': term_freq})
+    df = pd.DataFrame(data)
+    # Save the DataFrame to SQL
+    df.to_sql('inverted_index', con=engine, if_exists='replace', index=False)
+
+
+
+def save_tf_idf_to_sql(tf_idf, engine):
+    # Convert the tf_idf dictionary to a DataFrame
+    data = []
+    for doc_id, word_dict in tf_idf.items():
+        for word, tf_idf_value in word_dict.items():
+            data.append({'document_id': doc_id, 'word': word, 'tf_idf': tf_idf_value})
+    df = pd.DataFrame(data)
+    # Save the DataFrame to SQL
+    df.to_sql('tf_idf', con=engine, if_exists='replace', index=False)
+
+
+def load_inverted_index_from_sql(engine):
+    # Load the DataFrame from SQL
+    df = pd.read_sql('inverted_index', con=engine)
+    # Convert the DataFrame back to a dictionary
+    inverted_index = {}
+    for _, row in df.iterrows():
+        word = row['word']
+        doc_id = row['document_id']
+        term_freq = row['term_frequency']
+        if word not in inverted_index:
+            inverted_index[word] = {}
+        inverted_index[word][doc_id] = term_freq
+    return inverted_index
+
+
+
+def load_tf_idf_from_sql(engine):
+    # Load the DataFrame from SQL
+    df = pd.read_sql('tf_idf', con=engine)
+    # Convert the DataFrame back to a dictionary
+    tf_idf = {}
+    for _, row in df.iterrows():
+        doc_id = row['document_id']
+        word = row['word']
+        tf_idf_value = row['tf_idf']
+        if doc_id not in tf_idf:
+            tf_idf[doc_id] = {}
+        tf_idf[doc_id][word] = tf_idf_value
+    return tf_idf

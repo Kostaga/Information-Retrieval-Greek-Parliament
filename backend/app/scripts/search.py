@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
-from scripts.inverted_index import create_table, find_keyword, calculate_tf_idf, create_inverted_index
+from scripts.inverted_index import ensure_table, find_keyword, calculate_tf_idf, create_inverted_index
 from collections import defaultdict
 from scripts.dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words
 from sklearn.metrics.pairwise import cosine_similarity
@@ -45,7 +45,7 @@ def search(
     """
     df = create_clean_data()
     # Create inverted index and TF-IDF values if they do not exist
-    _ , tf_idf = create_table(df)
+    tf_idf = ensure_table(df, "tf_idf")
 
     # Combine fields into a dictionary for dynamic processing
     query_fields = {
@@ -131,5 +131,3 @@ def find_cosine_similarity(tf_idf: dict, matching_docs: set, keywords: list) -> 
     return similarities
 
 
-
-# print(search("", "", "νέα δημοκρατία", "Τουρκία"))
