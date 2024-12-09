@@ -5,12 +5,7 @@ import math
 from collections import defaultdict
 import os
 from sqlalchemy import create_engine, inspect
-from scripts.database import engine
-
-def table_exists(engine, table_name):
-    inspector = inspect(engine)
-    return table_name in inspector.get_table_names()
-
+from scripts.database import engine, table_exists
 
 
 def create_inverted_index(df) -> dict:

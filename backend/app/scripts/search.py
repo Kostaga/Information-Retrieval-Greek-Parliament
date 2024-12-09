@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
-from scripts.inverted_index import ensure_table, find_keyword, calculate_tf_idf, create_inverted_index
+from scripts.inverted_index import find_keyword, calculate_tf_idf, create_inverted_index, ensure_table
 from collections import defaultdict
 from scripts.dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words
 from sklearn.metrics.pairwise import cosine_similarity
