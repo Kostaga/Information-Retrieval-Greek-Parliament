@@ -4,11 +4,9 @@ import SearchBar from "../components/Searchbar";
 
 const HomePage = () => {
   return (
-    <>
-      <div style={{ padding: "16px" }}>
-        <SearchBar />
-      </div>
-    </>
+    <div style={{ padding: "16px" }}>
+      <SearchBar />
+    </div>
   );
 };
 
