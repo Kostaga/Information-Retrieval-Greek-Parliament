@@ -28,10 +28,11 @@ def search(
     name: str = None,
     date: str = None,
     political_party: str = None,
-    keywords: str = None
+    keywords: str = None,
+    limit: int = 20
 ) -> set:
     """
-    Searches the cleaned data for the query fields provided by the user.
+    Searches the cleaned data for the query fields provided by the user. 
     
     Args:
         df (pd.DataFrame): DataFrame containing the cleaned speeches.
@@ -85,9 +86,15 @@ def search(
             similar_docs = find_cosine_similarity(tf_idf, matching_docs, value)
             matching_docs = set(doc_id for doc_id, _ in similar_docs)
         else:
-            # For single-value fields like name, date, and political_party
-            field_indexes = df[df[field] == value].index.tolist()
-            matching_docs &= set(field_indexes)
+            # For partial matching of text fields
+            if field == "sitting_date":
+                # Exact match for dates
+                field_matches = df[df[field] == value].index.tolist()
+            else:
+                # Partial match for strings (case insensitive)
+                field_matches = df[df[field].str.contains(value, case=False)].index.tolist()
+
+            matching_docs &= set(field_matches)
         
         print(f"Matching documents for {field}: {len(matching_docs)}")
 
