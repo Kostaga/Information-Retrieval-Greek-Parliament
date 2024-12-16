@@ -1,11 +1,11 @@
 import pandas as pd
-from dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words
+from scripts.dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words
 import pickle
 import math
 from collections import defaultdict
 import os
 from sqlalchemy import create_engine, inspect
-from database import engine, table_exists
+from scripts.database import engine, table_exists
 
 
 def create_inverted_index(df) -> dict:
@@ -37,7 +37,7 @@ def create_inverted_index(df) -> dict:
 def calculate_tf_idf(inverted_index: dict, total_documents: int) -> dict:
     '''Calculates the term frequency-inverse document frequency for the cleaned data'''
     tfidf = {}
-   
+    
     for word, indexes in inverted_index.items():
         # calculate the idf
         idf = math.log(total_documents / (1 + len(indexes)))
@@ -45,15 +45,18 @@ def calculate_tf_idf(inverted_index: dict, total_documents: int) -> dict:
         for index, term_count in indexes.items():
             # calculate the tf
             tf = 1 + math.log(term_count)
-            if index not in tfidf:
-                tfidf[index] = {word: (1+ math.log(term_count)) * idf}
-            else:
-                tfidf[index][word] += (1+ math.log(term_count)) * idf
 
+            # Initialize the tfidf[index] if not present
+            if index not in tfidf:
+                tfidf[index] = {}
+
+            # Add the tf-idf value for the word
+            if word not in tfidf[index]:
+                tfidf[index][word] = tf * idf
+            else:
+                tfidf[index][word] += tf * idf
 
     save_tf_idf_to_sql(tfidf, engine)
-    
-
     return tfidf
 
 
