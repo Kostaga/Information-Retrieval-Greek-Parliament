@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-from scripts.stopwords import STOPWORDS
+from stopwords import STOPWORDS
 import spacy
 from greek_stemmer import stemmer
 import os
@@ -85,9 +85,25 @@ def clean_dataset(dataframe):
     return dataframe
 
 
+
+def create_clean_data():
+    '''Creates the cleaned data CSV file if it does not exist'''
+    # Determine the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(script_dir, 'cleaned_data.csv')
+
+    if not os.path.exists(csv_path):
+        print("cleaned_data.csv not found. Creating the file...")
+        df = pd.read_csv("data_sample.csv")
+        clean_dataset(df)
+        print("File created!")
+        return pd.read_csv(csv_path)
+    else:
+        return pd.read_csv(csv_path)
+
 # Read the CSV file
-df = pd.read_csv(csv_path)
-clean_dataset(df)
+# df = pd.read_csv(csv_path)
+# clean_dataset(df)
 
 
 

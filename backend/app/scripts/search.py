@@ -3,24 +3,11 @@ import os
 import numpy as np
 from scripts.inverted_index import find_keyword, calculate_tf_idf, create_inverted_index, ensure_table
 from collections import defaultdict
-from scripts.dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words
+from scripts.dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words, create_clean_data
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def create_clean_data():
-    '''Creates the cleaned data CSV file if it does not exist'''
-    # Determine the directory of the current script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(script_dir, 'cleaned_data.csv')
 
-    if not os.path.exists(csv_path):
-        print("cleaned_data.csv not found. Creating the file...")
-        df = pd.read_csv("data_sample.csv")
-        clean_dataset(df)
-        print("File created!")
-        return pd.read_csv(csv_path)
-    else:
-        return pd.read_csv(csv_path)
 
 
 
