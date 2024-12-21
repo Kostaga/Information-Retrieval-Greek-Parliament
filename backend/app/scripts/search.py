@@ -1,9 +1,9 @@
 import pandas as pd
 import os
 import numpy as np
-from scripts.inverted_index import find_keyword, calculate_tf_idf, create_inverted_index, ensure_table
+from scripts.inverted_index import calculate_tf_idf, create_inverted_index, ensure_table
 from collections import defaultdict
-from scripts.dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words, create_clean_data
+from scripts.dataCleaning import clean_dataset, remove_punctuation_and_numbers, stem_words, create_clean_data
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -15,8 +15,7 @@ def search(
     name: str = None,
     date: str = None,
     political_party: str = None,
-    keywords: str = None,
-    limit: int = 20
+    keywords: str = None
 ) -> set:
     """
     Searches the cleaned data for the query fields provided by the user. 
@@ -35,6 +34,7 @@ def search(
     # Create inverted index and TF-IDF values if they do not exist
     tf_idf = ensure_table(df, "tf_idf")
 
+
     # Combine fields into a dictionary for dynamic processing
     query_fields = {
         "member_name": name.lower() if name else None,
@@ -43,8 +43,7 @@ def search(
         "keywords": [k.strip() for k in keywords.split(",")] if keywords else None
     }
 
-    
-    
+        
 
     # Initialize the result set with all possible document IDs
     all_docs = set(tf_idf.keys())
@@ -60,7 +59,7 @@ def search(
     
     # Preprocess and find keyword matches
     if query_fields["keywords"]:
-        query_fields["keywords"] = [stem_words(remove_punctuation_and_numbers(word)) for word in query_fields["keywords"]]
+        query_fields["keywords"] = stem_words([remove_punctuation_and_numbers(word) for word in query_fields["keywords"]])
 
 
     # Process each field
@@ -79,7 +78,7 @@ def search(
                 field_matches = df[df[field] == value].index.tolist()
             else:
                 # Partial match for strings (case insensitive)
-                field_matches = df[df[field].str.contains(value, case=False)].index.tolist()
+                field_matches = df[df[field].str.contains(value, na=False, case=False)].index.tolist()
 
             matching_docs &= set(field_matches)
         
@@ -87,8 +86,8 @@ def search(
 
     print(f"Final matching documents: {len(matching_docs)}")
     
-    # Return the rows of the matching documents without the clean speech column
-    rows = df.loc[list(matching_docs)].drop(columns=["clean_speech"])
+    # Return the rows of the matching documents
+    rows = df.loc[list(matching_docs)]
     return rows
     
     
