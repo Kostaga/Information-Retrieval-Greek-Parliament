@@ -56,6 +56,14 @@ def calculate_tf_idf(inverted_index: dict, total_documents: int) -> dict:
             else:
                 tfidf[index][word] += tf * idf
 
+    
+    # Normalize the TF-IDF values so they sum to 1 for each document
+    for index, terms in tfidf.items():
+        total_tfidf = sum(terms.values())  # Sum of all TF-IDF values in the document
+        if total_tfidf > 0:  # Avoid division by zero
+            for word in terms:
+                terms[word] /= (total_tfidf * 1.0)
+
     save_tf_idf_to_sql(tfidf, engine)
     return tfidf
 

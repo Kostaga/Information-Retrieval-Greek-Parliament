@@ -15,7 +15,8 @@ def search(
     name: str = None,
     date: str = None,
     political_party: str = None,
-    keywords: str = None
+    keywords: str = None,
+    limit: int = 100
 ) -> set:
     """
     Searches the cleaned data for the query fields provided by the user. 
@@ -26,6 +27,7 @@ def search(
         date (str): Date to search for.
         political_party (str): Political party to search for.
         keywords (str): String of comma-separated keywords to search for.
+        limit (int): Maximum number of results to return.
         
     Returns:
         set: A ranked set of document IDs and their TF-IDF scores.
@@ -69,7 +71,7 @@ def search(
 
         if field == "keywords":
             # For keyword fields, calculate the cosine similarity
-            similar_docs = find_cosine_similarity(tf_idf, matching_docs, value)
+            similar_docs = find_cosine_similarity(tf_idf, matching_docs, value,limit=limit)
             matching_docs = set(doc_id for doc_id, _ in similar_docs)
         else:
             # For partial matching of text fields
@@ -87,12 +89,12 @@ def search(
     print(f"Final matching documents: {len(matching_docs)}")
     
     # Return the rows of the matching documents
-    rows = df.loc[list(matching_docs)]
+    rows = df.loc[list(matching_docs)[:limit]]
     return rows
     
     
 
-def find_cosine_similarity(tf_idf: dict, matching_docs: set, keywords: list) -> list:
+def find_cosine_similarity(tf_idf: dict, matching_docs: set, keywords: list, limit: int) -> list:
     '''Finds the cosine similarity between the query keywords and the documents'''
   
     # Create a vector for the query keywords
@@ -104,6 +106,8 @@ def find_cosine_similarity(tf_idf: dict, matching_docs: set, keywords: list) -> 
     
     # Normalize the query vector
     query_vector = np.array(list(query_vector.values()))
+    if np.linalg.norm(query_vector) == 0:
+        return []
     query_vector = query_vector / np.linalg.norm(query_vector)
 
     print(f"Query vector: {query_vector}")
@@ -119,7 +123,7 @@ def find_cosine_similarity(tf_idf: dict, matching_docs: set, keywords: list) -> 
         similarities.append((doc_id, similarity))
     
     # Sort documents by similarity score in descending order
-    similarities.sort(key=lambda x: x[1], reverse=True)
+    similarities = sorted(similarities, key=lambda x: x[1], reverse=True)[:limit]
     
     return similarities
 
