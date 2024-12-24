@@ -1,6 +1,8 @@
 // src/App.js
 import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./Pages/Homepage";
+import Group from "./Pages/Group";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import ParticlesBg from "particles-bg";
@@ -8,7 +10,7 @@ import "./App.css";
 
 const App = () => {
   return (
-    <>
+    <Router>
       <ParticlesBg
         className="particles"
         color="#ffffff"
@@ -17,9 +19,12 @@ const App = () => {
         bg={true}
       />
       <Header />
-      <HomePage />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/group-speech" element={<Group />} />
+      </Routes>
       <Footer />
-    </>
+    </Router>
   );
 };
 

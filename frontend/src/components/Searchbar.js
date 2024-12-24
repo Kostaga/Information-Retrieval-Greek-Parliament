@@ -36,7 +36,7 @@ const SearchBar = () => {
   // Function to handle search
   const onSearch = (searchFields) => {
     // Send the searchFields to the backend
-    fetch("/search", {
+    fetch("http://localhost:5000/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -56,7 +56,7 @@ const SearchBar = () => {
   };
 
   return (
-    <div>
+    <div style={{ position: "relative" }}>
       <Box
         className="flexbox"
         sx={{
@@ -68,12 +68,13 @@ const SearchBar = () => {
           padding: 3,
         }}
       >
-        <Typography variant="h4" sx={{ marginBottom: 3 }}>
+        <Typography variant="h3" sx={{ marginBottom: 3 }}>
           Search Parliament Speeches by:
         </Typography>
 
-        <p style={{ marginBottom: "2rem" }}>
-          Leave empty for all speeches in a desired column
+        <p style={{ marginBottom: "2rem", fontSize: "1.1rem" }}>
+          Leave empty for all speeches in a desired column. To search for
+          multiple keywords, separate them with a comma.
         </p>
         <Box
           sx={{

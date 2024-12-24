@@ -1,121 +1,98 @@
 import pandas as pd
-import re
+import regex as re
 from scripts.stopwords import STOPWORDS
 import spacy
 from greek_stemmer import stemmer
 import os
 import unicodedata
+import time
+import multiprocessing as mp
+
+FILE = "app/parliament.csv"
+OUTPUT_FILE = "cleaned_data.csv"
+ROWS = 5000 # Adjust this value as needed for the number of rows to process
+
 # Load the spaCy model
 try:
-    nlp = spacy.load("el_core_news_sm")
+    nlp = spacy.load("el_core_news_sm", disable=["parser", "ner", "tok2vec", "tagger", "attribute_ruler", "lemmatizer"])
+
 except Exception as e:
     print("Please run this: python -m spacy download el_core_news_sm")
     exit(1)
 
 
 
-
-# Transform to lowercase every speech
-def to_lowercase(text):
-    return text.lower()
-
 # Remove punctuation and numerical values
 def remove_punctuation_and_numbers(word: str) -> str:
-    # remove unwanted characters such as numbers, punctuation, etc.
-    # include the greek alphabet with and without accents
     word = word.lower()
-
-
-    word = ''.join(
-        c for c in unicodedata.normalize('NFD', word) 
-        if unicodedata.category(c) != 'Mn'
-    )
-
-    cleaned_word = re.sub(r'[^α-ω]', '', word)
-    if (cleaned_word == " " or len(cleaned_word) == 1 or cleaned_word in STOPWORDS):
+    cleaned_word = re.sub(r'[^\wάέήίόύώα-ω]', '', word)
+    if (cleaned_word == ' ' or len(cleaned_word) == 1 or cleaned_word in STOPWORDS):
         return ""
-
+    
     return cleaned_word
 
 
-def handle_compound_words(text: str) -> list:
-
-    # Split text by punctuation while keeping words intact
-    split_words = re.split(r'[^\wα-ω]', text)  # Split on non-alphanumeric and non-Greek characters
-
-    # Use the existing function to process each part
-    processed_words = []
-    for word in split_words:
-        processed_word = remove_punctuation_and_numbers(word)
-        if processed_word:  # Only add valid words
-            processed_words.append(processed_word)
-
-    return processed_words       
+def stem_words(words: list) -> list:
+    doc = nlp(' '.join(words))  # Process the whole sentence at once
+    return [
+        stemmer.stem_word(token.text, "NNM").lower() for token in doc if token.is_alpha
+    ]
 
 
-def stem_words(word: str) -> str:
-    """Stem the word based on its POS tag and return the stemmed word"""
-    doc = nlp(word)
-    tag = doc[0].pos_
-    if tag == "NOUN":
-        return stemmer.stem_word(word, "NNM").lower()
+# Process the dataset
+def clean_dataset(df):
+    df = df.dropna(subset=['member_name'],ignore_index=True)
+    df = df.dropna(subset=['speech'],ignore_index=True)
+    speeches = df['speech'].tolist()
+    df['clean_speech'] = parallel_process(speeches)
+    df['clean_speech'] = df['clean_speech'].replace('', pd.NA)
+    df = df.dropna(subset=['clean_speech'],ignore_index=True)
+    return df
 
-    elif tag == "VERB":
-        return stemmer.stem_word(word, "VB").lower()
 
-    elif tag == "PROPN":
-        return stemmer.stem_word(word, "PRP").lower()
+def process_batch(batch):
+    # Process a batch of records
+    return clean_speech_bulk(batch)
 
-    elif tag == "ADJ" or tag == "ADV":
-        return stemmer.stem_word(word, "JJM").lower()
 
-    else:
-        return stemmer.stem_word(word, "NNM").lower()
+def parallel_process(data, num_workers=4):
+    pool = mp.Pool(num_workers)
+    chunk_size = len(data) // num_workers
+    chunks = [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+    results = pool.map(process_batch, chunks)
+    return [item for sublist in results for item in sublist]
 
-# Clean the speeches
-def clean_dataset(dataframe):
-    """Clean the speeches and return the updated DataFrame"""
-    
-    dataframe.drop(columns=['government', 'parliamentary_period', 'member_region', 'roles','parliamentary_sitting','parliamentary_session'], inplace=True)
-    dataframe.dropna(subset=['member_name', ], inplace=True)
-    dataframe['clean_speech'] = dataframe['speech'].apply(to_lowercase)
+# Clean speeches in bulk
+def clean_speech_bulk(speeches: list) -> list:
+    regex = re.compile(r'[^\p{Greek}\w]')
+    def process_speech(speech: str) -> str:
+        # Remove punctuation and numbers, and split into words
+        words = regex.split(speech.lower())
+        # Filter and clean words in one step
+        cleaned_words = [
+            word for word in words
+            if word and len(word) > 1 and word not in STOPWORDS
+        ]
+        # Stem words in bulk
+        stemmed_words = stem_words(cleaned_words)
+        return ' '.join(stemmed_words)
 
-    # Remove punctuation and numerical values
-    dataframe['clean_speech'] = dataframe['clean_speech'].apply(
-    lambda x: ' '.join([word for word in handle_compound_words(x)]))
-    dataframe['clean_speech'] = dataframe['clean_speech'].apply(lambda x: ' '.join([stem_words(word) for word in x.split()]))
-    
-
-    # Remove clean speech null values
-    dataframe['clean_speech'].replace('', pd.NA, inplace=True)
-    dataframe.dropna(subset=['clean_speech'], inplace=True)
-
-    # Clean the data and display the cleaned DataFrame
-    dataframe.to_csv('cleaned_data.csv', index=False)
-    
-
-    return dataframe
+    start = time.time()
+    results = [process_speech(speech) for speech in speeches]
+    print(f"Time taken: {time.time() - start:.2f} seconds")
+    return results
 
 
 
 def create_clean_data():
     '''Creates the cleaned data CSV file if it does not exist'''
-    # Determine the directory of the current script
-    # script_dir = os.path.dirname(os.path.abspath(__file__))
-    # csv_path = os.path.join(script_dir, 'cleaned_data.csv')
-
-    if not os.path.exists("cleaned_data.csv"):
-        print("cleaned_data.csv not found. Creating the file...")
-        df = pd.read_csv("data_sample.csv")
-        clean_dataset(df)
+    if not os.path.exists(OUTPUT_FILE):
+        print(f"{OUTPUT_FILE} not found. Creating the file...")
+        df = pd.read_csv(FILE, nrows=ROWS, usecols=['member_name', 'speech', 'political_party','sitting_date'])
+        cleaned_dataset = clean_dataset(df)
         print("File created!")
-        return pd.read_csv("cleaned_data.csv")
+        cleaned_dataset.to_csv(OUTPUT_FILE, index=False)
+        return cleaned_dataset
     else:
-        return pd.read_csv("cleaned_data.csv")
-
-# Read the CSV file
-# df = pd.read_csv(csv_path)
-# clean_dataset(df)
-
-
-
+        print(f"{OUTPUT_FILE} already exists. Loading file...")
+        return pd.read_csv(OUTPUT_FILE)

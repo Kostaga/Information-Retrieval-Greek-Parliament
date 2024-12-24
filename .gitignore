@@ -13,6 +13,12 @@ frontend/node_modules/
 
 # virtual enviroment
 backend/venv/
+backend/app/parliament.csv
+backend/cleaned_data.csv
+backend/app/parliament.db
+backend/instance/
+backend/app/__pycache__/
+
 
 
 # misc

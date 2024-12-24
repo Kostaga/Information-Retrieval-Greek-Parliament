@@ -16,7 +16,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 const Results = ({ results }) => {
   const [expandedRows, setExpandedRows] = useState({});
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage] = useState(5);
 
   const handleExpandClick = (id) => {
     setExpandedRows((prev) => ({
@@ -63,8 +63,8 @@ const Results = ({ results }) => {
         component={Paper}
         style={{
           width: "100%",
-          maxHeight: "none",
-          overflow: "visible",
+          maxHeight: "50vh",
+          overflow: "scroll",
           padding: "1rem",
           marginBottom: "3rem",
         }}
