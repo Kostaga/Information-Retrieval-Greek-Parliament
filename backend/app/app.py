@@ -38,10 +38,10 @@ def searchEngine():
 def getGroupedData():
     grouped_by = request.json.get('grouped_by', '')
     switcher = {
-        "member_name": group_by_member_name(),
-        "speech": group_by_speech(),
-        "party": group_by_party(),
-        "date": group_by_date()
+        "member_name": group_by_member_name() if grouped_by == "member_name" else None,
+        "speech": group_by_speech() if grouped_by == "speech" else None,
+        "party": group_by_party() if grouped_by == "party" else None,
+        "date": group_by_date() if grouped_by == "date" else None
     }
 
     return jsonify(switcher.get(grouped_by).to_json(orient='records'))
