@@ -1,5 +1,5 @@
 import pandas as pd
-from scripts.dataCleaning import clean_dataset, to_lowercase, remove_punctuation_and_numbers, stem_words
+from scripts.dataCleaning import clean_dataset, remove_punctuation_and_numbers
 import pickle
 import math
 from collections import defaultdict
@@ -56,27 +56,18 @@ def calculate_tf_idf(inverted_index: dict, total_documents: int) -> dict:
             else:
                 tfidf[index][word] += tf * idf
 
+    
+    # Normalize the TF-IDF values so they sum to 1 for each document
+    for index, terms in tfidf.items():
+        total_tfidf = sum(terms.values())  # Sum of all TF-IDF values in the document
+        if total_tfidf > 0:  # Avoid division by zero
+            for word in terms:
+                terms[word] /= (total_tfidf * 1.0)
+
     save_tf_idf_to_sql(tfidf, engine)
     return tfidf
 
 
-def find_keyword(matching_docs, value: str, inverted_index: dict) -> set:
-    # Preprocess and find keyword matches
-    processed_keywords = [
-        stem_words(remove_punctuation_and_numbers(word))
-        for word in value
-    ]
-    print(f"Processed keywords: {processed_keywords}")
-    # Find the indexes of the keywords in the inverted index
-    keyword_indexes = [
-        set(inverted_index[word].keys()) for word in processed_keywords if word in inverted_index
-    ]
-    print(keyword_indexes)
-    # Intersect all keyword matches
-    if keyword_indexes:
-        matching_docs &= set.intersection(*keyword_indexes)
-    
-    return matching_docs
 
 
 def ensure_table(df: pd.DataFrame, table_name: str) -> dict:
@@ -127,32 +118,69 @@ def save_tf_idf_to_sql(tf_idf, engine):
     df.to_sql('tf_idf', con=engine, if_exists='replace', index=False)
 
 
+# def load_inverted_index_from_sql(engine):
+#     # Load the DataFrame from SQL
+#     df = pd.read_sql('inverted_index', con=engine)
+#     # Convert the DataFrame back to a dictionary
+#     inverted_index = {}
+#     for _, row in df.iterrows():
+#         word = row['word']
+#         doc_id = row['document_id']
+#         term_freq = row['term_frequency']
+#         if word not in inverted_index:
+#             inverted_index[word] = {}
+#         inverted_index[word][doc_id] = term_freq
+#     return inverted_index
+
+
+
+# def load_tf_idf_from_sql(engine):
+#     # Load the DataFrame from SQL
+#     df = pd.read_sql('tf_idf', con=engine)
+#     # Convert the DataFrame back to a dictionary
+#     tf_idf = {}
+#     for _, row in df.iterrows():
+#         doc_id = row['document_id']
+#         word = row['word']
+#         tf_idf_value = row['tf_idf']
+#         if doc_id not in tf_idf:
+#             tf_idf[doc_id] = {}
+#         tf_idf[doc_id][word] = tf_idf_value
+#     return tf_idf
+
+
 def load_inverted_index_from_sql(engine):
-    # Load the DataFrame from SQL
-    df = pd.read_sql('inverted_index', con=engine)
-    # Convert the DataFrame back to a dictionary
-    inverted_index = {}
-    for _, row in df.iterrows():
-        word = row['word']
-        doc_id = row['document_id']
-        term_freq = row['term_frequency']
-        if word not in inverted_index:
-            inverted_index[word] = {}
-        inverted_index[word][doc_id] = term_freq
+    # Query the database directly and load the necessary columns
+    query = """
+    SELECT word, document_id, term_frequency
+    FROM inverted_index
+    """
+    # Load data from SQL into a DataFrame
+    df = pd.read_sql(query, con=engine)
+    
+    # Create the inverted index using pandas groupby (to minimize loops)
+    inverted_index = df.groupby('word').apply(
+        lambda x: dict(zip(x['document_id'], x['term_frequency']))
+    ).to_dict()
+
+    
     return inverted_index
 
 
-
 def load_tf_idf_from_sql(engine):
-    # Load the DataFrame from SQL
-    df = pd.read_sql('tf_idf', con=engine)
-    # Convert the DataFrame back to a dictionary
-    tf_idf = {}
-    for _, row in df.iterrows():
-        doc_id = row['document_id']
-        word = row['word']
-        tf_idf_value = row['tf_idf']
-        if doc_id not in tf_idf:
-            tf_idf[doc_id] = {}
-        tf_idf[doc_id][word] = tf_idf_value
-    return tf_idf
+    # Query the database directly and load the necessary columns
+    query = """
+    SELECT word, document_id, tf_idf
+    FROM tf_idf
+    """
+    # Load data from SQL into a DataFrame (you can optionally add chunking here for very large datasets)
+    df = pd.read_sql(query, con=engine)
+    
+    # Create the tf-idf dictionary using pandas groupby
+    tf_idf_dict = df.groupby('document_id').apply(
+        lambda x: dict(zip(x['word'], x['tf_idf']))
+    ).to_dict()
+
+    
+    return tf_idf_dict
+    
