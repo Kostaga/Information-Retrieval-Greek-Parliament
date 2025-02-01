@@ -1,10 +1,11 @@
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from scripts.stopwords import STOPWORDS
 from scripts.search import search
 from scripts.group import group_by_speech, group_by_party, group_by_member_name, group_by_date
+from scripts.clustering import kmeans
 import json
 # Create a Flask app
 app = Flask(__name__)
@@ -45,6 +46,11 @@ def getGroupedData():
     }
 
     return jsonify(switcher.get(grouped_by).to_json(orient='records'))
+
+@app.route('/clustering', methods=['POST'])
+def getClustering():
+    kmeans()
+    return send_from_directory('static', 'kmeans_plot.png')
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

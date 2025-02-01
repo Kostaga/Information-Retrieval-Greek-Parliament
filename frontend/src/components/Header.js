@@ -36,6 +36,14 @@ const Header = () => (
           Group Speech
         </Typography>
       </Link>
+      <Link
+        to="/clustering"
+        style={{ color: "inherit", textDecoration: "none", marginLeft: "2rem" }}
+      >
+        <Typography variant="h6" component="div">
+          Clustering
+        </Typography>
+      </Link>
     </Toolbar>
   </AppBar>
 );
