@@ -9,3 +9,4 @@ scikit_learn==1.6.1
 spacy==3.8.2
 SQLAlchemy==2.0.36
 matplotlib==3.10.0
+gensim==4.1.2

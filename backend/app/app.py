@@ -49,6 +49,7 @@ def getGroupedData():
 
 @app.route('/clustering', methods=['POST'])
 def getClustering():
+    print("here in app.py")
     kmeans()
     return send_from_directory('static', 'kmeans_plot.png')
 
