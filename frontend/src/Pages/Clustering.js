@@ -1,7 +1,31 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import { Typography, Box } from "@mui/material";
 
+// const Clustering = () => {
+//   const [plotPath, setPlotPath] = useState("");
+
+//   useEffect(() => {
+//     fetch("http://localhost:5000/clustering", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//     })
+//       .then((response) => response.json())
+//       .then((data) => {
+//         setPlotPath(`http://localhost:5000/${data.plot_path}`);  // Ensure it matches backend
+//       })
+//       .catch((error) => {
+//         console.error("Error:", error);
+//       });
+//   }, []);
 const Clustering = () => {
+  const [imageUrl, setImageUrl] = useState("");
+
+  useEffect(() => {
+    setImageUrl("http://127.0.0.1:5000/clustering"); // Flask endpoint
+  }, []);
+  
   return (
     <Box
       sx={{
@@ -25,8 +49,13 @@ const Clustering = () => {
         K-Means Clustering of Speeches
       </Typography>
 
-      {/* Plot Image */}
-      <img src="http://localhost:5000/static/kmeans_plot.png" alt="K-Means Clustering Plot" />
+      {/* Plot Image
+      {plotPath && <img src={plotPath} alt="Cluster Plot" />} */}
+      {imageUrl ? (
+        <img src={imageUrl} alt="Speech Clustering Plot" style={{ width: "80%", border: "2px solid black" }} />
+      ) : (
+        <p>Loading...</p>
+      )}
     </Box>
   );
 };

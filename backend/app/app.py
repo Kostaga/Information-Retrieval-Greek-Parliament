@@ -1,18 +1,24 @@
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_file
+from scripts.lsi_model import create_lsi_model, get_lsi_vectors, avg_lsi_vector
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from scripts.stopwords import STOPWORDS
+from scripts import clustering 
+from scripts.similarity import get_top_similar_members
 from scripts.search import search
 from scripts.group import group_by_speech, group_by_party, group_by_member_name, group_by_date
-from scripts.clustering import kmeans
 import json
+import os
+import subprocess
+
 # Create a Flask app
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///parliament.db'
 db = SQLAlchemy(app)
 
 CORS(app)  # Enable CORS for connecting with React
+
 
 @app.route('/api', methods=['GET'])
 def get_data():
@@ -47,11 +53,39 @@ def getGroupedData():
 
     return jsonify(switcher.get(grouped_by).to_json(orient='records'))
 
-@app.route('/clustering', methods=['POST'])
-def getClustering():
-    print("here in app.py")
-    kmeans()
-    return send_from_directory('static', 'kmeans_plot.png')
+# @app.route('/clustering', methods=['POST'])
+# def getClustering():
+#     plot_path = kmeans()
+#     return jsonify({'plot_path': plot_path})
+
+# @app.route('/static/<path:filename>')
+# def serve_file(filename):
+#     return send_from_directory('static', filename)  # Serve from static folder
+
+@app.route('/similarity', methods=['GET'])
+def compute_similarity():
+    top_similar = get_top_similar_members()
+    return jsonify(top_similar)
+
+@app.route('/lsi')
+def lsi():
+    # Build the LSI model
+    lsi_model, dictionary, doc_term_matrix = create_lsi_model(num_topics=7)
+
+    # Transform speeches into LSI vectors
+    lsi_vectors = get_lsi_vectors(lsi_model, doc_term_matrix)
+
+    # Compute the average LSI vector
+    average_vector = avg_lsi_vector(lsi_vectors)
+
+    print("LSI Vectors:", lsi_vectors)
+    print("Average Vector:", average_vector)
+    return jsonify({"LSI Vectors": lsi_vectors, "Average Vector": average_vector})
+
+@app.route('/clustering')
+def Clustering():
+    clustering.kmeans()
+    return send_file("cluster_plot.png", mimetype='image/png')
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

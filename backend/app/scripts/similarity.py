@@ -1,7 +1,7 @@
 import pandas as pd  # to load the dataframe
-import gensim # to create the LSA model
+import numpy as np
 import spacy
-
+from sklearn.metrics.pairwise import cosine_similarity
 # Load spaCy's English language model
 nlp = spacy.load("en_core_web_sm")
 from scripts.dataCleaning import create_clean_data
@@ -9,6 +9,8 @@ from gensim import corpora
 from gensim.models import LsiModel
 from gensim.models.coherencemodel import CoherenceModel
 import matplotlib.pyplot as plt
+
+
 
 #Standardize the features
 #Create an object of StandardScaler which is present in sklearn.preprocessing
@@ -38,22 +40,44 @@ def prepare_corpus(doc_clean):
 
 # Create Gensim LSA Model
 def create_gensim_lsa_model(doc_clean, number_of_topics, words):
-    """
-    Input  : clean document, number of topics, number of words per topic
-    Purpose: Create LSA model using Gensim
-    Output : LSA model
-    """
     dictionary, doc_term_matrix = prepare_corpus(doc_clean)
     lsamodel = LsiModel(doc_term_matrix, num_topics=number_of_topics, id2word=dictionary)
-    topics = lsamodel.print_topics(num_topics=number_of_topics, num_words=words)
-    for topic in topics:
-        print(topic)
-    return lsamodel
+    
+    # Extract topic distribution for the member
+    topic_distribution = [lsamodel[doc] for doc in doc_term_matrix]
 
-# Generate LSA model for each speaker
-for _, row in df_by_member.iterrows():
-    print(f"Topics for {row['member_name']}:\n")
-    doc_clean = [doc for doc in row['doc_clean']]  # Tokenized speeches for the speaker
-    create_gensim_lsa_model(doc_clean, number_of_topics=7, words=10)
-    print("\n" + "="*50 + "\n")
+    # Aggregate topic vectors by averaging across all speeches
+    avg_topic_vector = [np.mean([val for (_, val) in doc]) for doc in topic_distribution if doc]
 
+
+    
+    return avg_topic_vector
+
+# Function to compute top 3 most similar members
+def get_top_similar_members():
+    topic_vectors = {}
+    for _, row in df_by_member.iterrows():
+        doc_clean = row['doc_clean']
+        topic_vectors[row['member_name']] = create_gensim_lsa_model(doc_clean, 7, 10)
+
+    members = list(topic_vectors.keys())
+    vectors = np.array([topic_vectors[m] for m in members])
+    vectors = np.array(vectors, dtype=float)  # Convert to NumPy array of floats
+    # Compute cosine similarity
+    print(f"Shape of vectors: {np.shape(vectors)}")
+
+    similarity_matrix = cosine_similarity(vectors)
+
+    # Get top 3 most similar pairs
+    similarity_scores = []
+    for i in range(len(members)):
+        for j in range(i + 1, len(members)):  # Avoid duplicate pairs
+            similarity_scores.append((members[i], members[j], similarity_matrix[i, j]))
+
+    # Sort by similarity score
+    top_3_similar = sorted(similarity_scores, key=lambda x: x[2], reverse=True)[:3]
+
+    return [
+        {"member_1": pair[0], "member_2": pair[1], "similarity": round(pair[2], 4)}
+        for pair in top_3_similar
+    ]
