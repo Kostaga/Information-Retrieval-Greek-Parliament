@@ -112,6 +112,7 @@ def find_cosine_similarity(tf_idf: dict, matching_docs: set, keywords: list, lim
 
     print(f"Query vector: {query_vector}")
     
+    
     # Calculate cosine similarity for each document
     similarities = []
     for doc_id in matching_docs:
