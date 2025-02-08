@@ -3,7 +3,7 @@ import numpy as np
 import spacy
 from sklearn.metrics.pairwise import cosine_similarity
 # Load spaCy's English language model
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("el_core_news_sm", disable=["parser", "ner", "tok2vec", "tagger", "attribute_ruler", "lemmatizer"])
 from scripts.dataCleaning import create_clean_data
 from gensim import corpora
 from gensim.models import LsiModel
