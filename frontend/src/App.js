@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./Pages/Homepage";
 import Group from "./Pages/Group";
 import Similarity from "./Pages/Similarity";
+import LsiModel from "./Pages/LsiModel";
 import Clustering from "./Pages/Clustering";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
@@ -25,6 +26,7 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/group-speech" element={<Group />} />
         <Route path="/similarity" element={<Similarity />} />
+        <Route path="/lsi" element={<LsiModel />} />
         <Route path="/clustering" element={<Clustering />} />
       </Routes>
       <Footer />
