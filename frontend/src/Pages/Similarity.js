@@ -62,7 +62,8 @@ const Similarity = () => {
                   {pair.member_1} & <span style={{ fontWeight: "bold" }}>{pair.member_2}</span>
                 </Typography>
                 <Typography variant="body1">
-                  Similarity Score: <strong>{pair.similarity}</strong>
+                  Similarity Score: <strong>{pair.score}</strong>
+
                 </Typography>
               </Paper>
             ))

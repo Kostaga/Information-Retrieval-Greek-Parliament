@@ -65,6 +65,7 @@ def getGroupedData():
 @app.route('/similarity', methods=['GET'])
 def compute_similarity():
     top_similar = get_top_similar_members()
+    print(top_similar)
     return jsonify(top_similar)
 
 @app.route('/lsi')
