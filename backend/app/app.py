@@ -9,6 +9,7 @@ from scripts.similarity import get_top_similar_members
 from scripts.search import search
 from scripts.group import group_by_speech, group_by_party, group_by_member_name, group_by_date
 import json
+import os
 
 
 # Create a Flask app
@@ -77,8 +78,11 @@ def lsi():
 
 @app.route('/clustering')
 def Clustering():
-    clustering.kmeans()
-    return send_file("cluster_plot.png", mimetype='image/png')
+    plot_path = clustering.kmeans()
+    if not os.path.exists(plot_path):
+        return "Error: Cluster plot was not generated.", 500  # Return HTTP 500 error
+    return send_file(plot_path, mimetype='image/png')
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -2,16 +2,9 @@ import numpy as np
 import os
 import pandas as pd
 from sklearn.cluster import KMeans
-from sklearn.decomposition import TruncatedSVD
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.cluster import KMeans
 from flask import Flask, send_file
 import matplotlib.pyplot as plt
-from scripts.dataCleaning import create_clean_data
-from scripts.stopwords import STOPWORDS
-from scripts.similarity import tokenize_with_spacy, create_gensim_lsa_model
-
-
+from scripts.lsi_model import create_lsi_model, get_lsi_vectors
 
 
 def plot_inertia(data, max_clusters=10):
@@ -29,58 +22,55 @@ def plot_inertia(data, max_clusters=10):
     plt.ylabel("Inertia")
     plt.title("Inertia Plot for K-Means Clustering")
     plt.grid(True)
-    plt.show()
+    plt.savefig("inertia_plot.png")
+   
 
+def convert_lsi_vectors_to_dense(lsi_vectors, num_topics):
+    """
+    Converts sparse LSI vectors to a dense NumPy array.
+    """
+    dense_vectors = np.zeros((len(lsi_vectors), num_topics))  # Create a zero-filled matrix
+    for i, doc in enumerate(lsi_vectors):
+        for topic_id, value in doc:
+            dense_vectors[i, topic_id] = value  # Assign topic value
+    return dense_vectors
 
 def kmeans():
-    data = create_clean_data()[["clean_speech"]]
-    doc_clean = data.apply(tokenize_with_spacy)
-    df = create_gensim_lsa_model(doc_clean, number_of_topics=7, words=10)
+   
+    # Build the LSI model
+    lsi_model, dictionary, doc_term_matrix = create_lsi_model(num_topics=7)
 
-    plot_inertia(df, max_clusters=10)
+    # Transform speeches into LSI vectors
+    lsi_vectors = get_lsi_vectors(lsi_model, doc_term_matrix)
+    
 
-    kmeans = KMeans(n_clusters=5)
-    kmeans.fit(df)
-    df["cluster"] = kmeans.labels_
+        
 
-    # Scatter plot
-    plt.scatter(df["x"], df["y"], c=df["cluster"])
 
-    # Save the plot in a static folder
-    plot_path = os.path.join("static", "cluster_plot.png")
+    # Convert LSI vectors to a dense matrix
+    num_topics = 7  # Set the number of topics
+    lsi_vectors_dense = convert_lsi_vectors_to_dense(lsi_vectors, num_topics)
+    print("LSI Vectors Shape:", lsi_vectors_dense.shape)  # Debugging
+
+    kmeans = KMeans(n_clusters=4, random_state=42, n_init=10, max_iter=100, algorithm="elkan")  
+
+    labels = kmeans.fit_predict(lsi_vectors_dense)
+    print("Labels Shape:", labels.shape)  # Debugging
+
+   
+    # Step 5: Plot the Clusters
+    plt.figure(figsize=(8, 6))
+    for i in range(len(lsi_vectors_dense)):
+       plt.scatter(lsi_vectors_dense[i, 0], lsi_vectors_dense[i, 1], c=f"C{labels[i]}")
+
+    plt.xlabel("LSI Topic 1")
+    plt.ylabel("LSI Topic 2")
+    plt.title("Speech Clustering using LSI & K-Means")
+    
+    plot_path = os.path.join(os.getcwd(), "cluster_plot.png")  # Use absolute path
     plt.savefig(plot_path)
-    plt.close()  # Close plot to prevent memory issues
+    plt.close()
+    print(f"Cluster plot saved at {plot_path}")  # Debugging output
 
-    print(f"Cluster plot saved at {plot_path}")
     return plot_path
-
-
-# def kmeans():
-#     speeches = create_clean_data()[["clean_speech"]]
-#     # Step 2: Convert text to TF-IDF vectors
-#     vectorizer = TfidfVectorizer(stop_words=STOPWORDS)
-#     X_tfidf = vectorizer.fit_transform(speeches)
-
-#     # Step 3: Apply LSA (Dimensionality Reduction)
-#     lsa = TruncatedSVD(n_components=2)
-#     X_lsa = lsa.fit_transform(X_tfidf)
-
-#     # Step 4: Apply K-Means Clustering
-#     num_clusters = 10  # Change as needed
-#     kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10)
-#     labels = kmeans.fit_predict(X_lsa)
-
-#     # Step 5: Create and Save the Cluster Plot
-#     plt.figure(figsize=(8, 6))
-#     colors = ['blue', 'red', 'green', 'purple', 'orange']
-#     for i in range(len(X_lsa)):
-#         plt.scatter(X_lsa[i, 0], X_lsa[i, 1], color=colors[labels[i]], label=f'Cluster {labels[i]}' if f'Cluster {labels[i]}' not in plt.gca().get_legend_handles_labels()[1] else "")
-#     plt.xlabel("LSA Component 1")
-#     plt.ylabel("LSA Component 2")
-#     plt.title("Speech Clustering using LSA & K-Means")
-#     plt.legend()
-#     plt.savefig("cluster_plot.png")
-#     plt.close()
-
-# if __name__ == "__main__":
-#     kmeans()
+    

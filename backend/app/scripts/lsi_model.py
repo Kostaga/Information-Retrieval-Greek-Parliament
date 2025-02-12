@@ -10,7 +10,7 @@ def preprocess_documents(documents):
     print("Preprocessing documents...")  # Debugging statement
     return [doc.split() for doc in documents]
 
-def create_lsi_model(num_topics=10):
+def create_lsi_model(num_topics):
     """
     Builds an LSI model for topic extraction.
     """
@@ -26,6 +26,7 @@ def create_lsi_model(num_topics=10):
     # Train LSI model
     lsi_model = models.LsiModel(doc_term_matrix, id2word=dictionary, num_topics=num_topics)
     return lsi_model, dictionary, doc_term_matrix
+    
 def get_lsi_vectors(lsi_model, doc_term_matrix):
     """
     Converts each document into an LSI topic vector.
