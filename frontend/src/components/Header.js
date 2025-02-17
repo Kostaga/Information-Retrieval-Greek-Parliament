@@ -37,6 +37,22 @@ const Header = () => (
         </Typography>
       </Link>
       <Link
+        to="/similarity"
+        style={{ color: "inherit", textDecoration: "none", marginLeft: "2rem" }}
+      >
+        <Typography variant="h6" component="div">
+          Similarity
+        </Typography>
+      </Link>
+      <Link
+        to="/lsi"
+        style={{ color: "inherit", textDecoration: "none", marginLeft: "2rem" }}
+      >
+        <Typography variant="h6" component="div">
+          LSI Vectorization
+        </Typography>
+      </Link>
+      <Link
         to="/clustering"
         style={{ color: "inherit", textDecoration: "none", marginLeft: "2rem" }}
       >

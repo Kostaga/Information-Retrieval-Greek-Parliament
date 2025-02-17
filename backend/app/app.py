@@ -1,18 +1,24 @@
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_file
+from scripts.lsi_model import create_lsi_model, get_lsi_vectors
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from scripts.stopwords import STOPWORDS
+from scripts import clustering 
+from scripts.similarity import get_top_similar_members
 from scripts.search import search
 from scripts.group import group_by_speech, group_by_party, group_by_member_name, group_by_date
-from scripts.clustering import kmeans
 import json
+import os
+
+
 # Create a Flask app
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///parliament.db'
 db = SQLAlchemy(app)
 
 CORS(app)  # Enable CORS for connecting with React
+
 
 @app.route('/api', methods=['GET'])
 def get_data():
@@ -47,11 +53,41 @@ def getGroupedData():
 
     return jsonify(switcher.get(grouped_by).to_json(orient='records'))
 
-@app.route('/clustering', methods=['POST'])
-def getClustering():
-    print("here in app.py")
-    kmeans()
-    return send_from_directory('static', 'kmeans_plot.png')
+
+@app.route('/similarity', methods=['GET'])
+def compute_similarity():
+    k = request.args.get('k', type=int)  # Get 'k' from URL query params
+
+    # Validate k (ensure it's a positive number)
+    if k is None or k <= 0:
+        return jsonify({"error": "Invalid value for k. Please enter a positive number."}), 400
+
+    top_similar = get_top_similar_members(k)  # Fetch top-k results
+    return jsonify(top_similar)
+
+@app.route('/lsi')
+def lsi():
+    # Build the LSI model
+    lsi_model, dictionary, doc_term_matrix = create_lsi_model(num_topics=7)
+
+    # Transform speeches into LSI vectors
+    lsi_vectors = get_lsi_vectors(lsi_model, doc_term_matrix)
+
+    # Convert LSI vectors to JSON serializable format
+    lsi_vectors_serializable = []
+    for vec in lsi_vectors:
+        vec_serializable = [(int(topic), float(weight)) for topic, weight in vec]
+        lsi_vectors_serializable.append(vec_serializable)
+    
+    return jsonify(lsi_vectors_serializable)
+
+@app.route('/clustering')
+def Clustering():
+    # plot_path = clustering.kmeans()
+    # if not os.path.exists(plot_path):
+    #     return "Error: Cluster plot was not generated.", 500  # Return HTTP 500 error
+    return send_file(os.path.join(os.getcwd(), "cluster_plot.png"), mimetype='image/png')
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

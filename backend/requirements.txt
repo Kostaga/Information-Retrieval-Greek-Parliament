@@ -4,6 +4,7 @@ flask_sqlalchemy==3.1.1
 greek_stemmer_pos==1.1.2
 numpy
 pandas
+scipy
 regex==2024.11.6
 scikit_learn
 spacy==3.8.2

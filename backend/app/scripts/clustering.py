@@ -1,10 +1,8 @@
 import numpy as np
-import pandas as pd
+import os
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
-from scripts.dataCleaning import create_clean_data
-
-
+from scripts.lsi_model import create_lsi_model, get_lsi_vectors
 
 
 def plot_inertia(data, max_clusters=10):
@@ -22,33 +20,46 @@ def plot_inertia(data, max_clusters=10):
     plt.ylabel("Inertia")
     plt.title("Inertia Plot for K-Means Clustering")
     plt.grid(True)
-    plt.show()
-
+    plt.savefig("inertia_plot.png")
+   
+#Converts sparse LSI vectors to a dense NumPy array.
+def convert_lsi_vectors_to_dense(lsi_vectors, num_topics):
+    dense_vectors = np.zeros((len(lsi_vectors), num_topics))  # Create a zero-filled matrix
+    for i, doc in enumerate(lsi_vectors):
+        for topic_id, value in doc:
+            dense_vectors[i, topic_id] = value  # Assign topic value
+    return dense_vectors
 
 def kmeans():
-    df = create_clean_data()
-    kmeans = KMeans(n_clusters=5, random_state=42)
-    kmeans.fit(df)
-    plot_inertia(df)
-    kmeans_labels = kmeans.labels_
-    kmeans_centroids = kmeans.cluster_centers_
-    print("here")
-    plt.figure(figsize=(10, 8))
-    
-    unique_clusters = np.unique(kmeans_labels)
-    cmap = plt.get_cmap('viridis', len(unique_clusters))
-    for cluster_id in unique_clusters:
-        cluster_data = df[kmeans_labels == cluster_id]
+   
+    # Build the LSI model
+    lsi_model, dictionary, doc_term_matrix = create_lsi_model(num_topics=2)
 
-        # Use a consistent color for the cluster, but vary the markers for its subclusters
-        cluster_color = cmap(cluster_id / len(unique_clusters))  # Assign color based on the cluster ID
-    
-    # Highlight K-Means centroids
-    plt.scatter(
-        kmeans_centroids[:, 0], kmeans_centroids[:, 1],
-        marker='*', s=200, c='black', edgecolors='white', label='K-Means Centroids'
-    )
+    # Transform speeches into LSI vectors
+    lsi_vectors = get_lsi_vectors(lsi_model, doc_term_matrix)
 
-    plt.title("K-Means Clustering on the Speeches Dataset")
-    plt.savefig('static/kmeans_plot.png')  # Save the plot as an image file
-    plt.show()
+    # Convert LSI vectors to a dense matrix
+    num_topics = 2  # Set the number of topics
+    lsi_vectors_dense = convert_lsi_vectors_to_dense(lsi_vectors, num_topics)
+
+    kmeans = KMeans(n_clusters=2, random_state=42, n_init=10, max_iter=100, algorithm="elkan")  
+
+    labels = kmeans.fit_predict(lsi_vectors_dense)
+
+   
+    # Step 5: Plot the Clusters
+    plt.figure(figsize=(8, 6))
+    for i in range(len(lsi_vectors_dense)):
+       plt.scatter(lsi_vectors_dense[i, 0], lsi_vectors_dense[i, 1], c=f"C{labels[i]}")
+
+    plt.xlabel("LSI Topic 1")
+    plt.ylabel("LSI Topic 2")
+    plt.title("Speech Clustering using LSI & K-Means")
+    
+    plot_path = os.path.join(os.getcwd(), "cluster_plot.png")  # Use absolute path
+    plt.savefig(plot_path)
+    plt.close()
+    print(f"Cluster plot saved at {plot_path}")  # Debugging output
+
+    return plot_path
+    
