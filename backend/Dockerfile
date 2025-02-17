@@ -11,10 +11,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN python -m spacy download el_core_news_sm
 
+
 # Copy the rest of the application code
 COPY . .
 
-# Expose the Flask port
 EXPOSE 5000
 
 # Command to run the Flask app

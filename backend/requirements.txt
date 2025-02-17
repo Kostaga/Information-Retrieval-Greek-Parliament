@@ -2,11 +2,12 @@ Flask==3.1.0
 Flask_Cors==5.0.0
 flask_sqlalchemy==3.1.1
 greek_stemmer_pos==1.1.2
-numpy==2.2.2
-pandas==2.2.3
+numpy
+pandas
+scipy
 regex==2024.11.6
-scikit_learn==1.6.1
+scikit_learn
 spacy==3.8.2
 SQLAlchemy==2.0.36
 matplotlib==3.10.0
-gensim==4.1.2
+gensim

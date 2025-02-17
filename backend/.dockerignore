@@ -1,6 +1,5 @@
 app/parliament.csv
-app/parliament.db
+parliament.db
 cleaned_data.csv
-venv/
 instance/
 app/__pycache__/

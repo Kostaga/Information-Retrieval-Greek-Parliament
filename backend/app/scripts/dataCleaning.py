@@ -10,7 +10,7 @@ import multiprocessing as mp
 
 FILE = "app/parliament.csv"
 OUTPUT_FILE = "cleaned_data.csv"
-ROWS = 15000 # Adjust this value as needed for the number of rows to process
+ROWS = 150 # Adjust this value as needed for the number of rows to process
 
 # Load the spaCy model
 try:

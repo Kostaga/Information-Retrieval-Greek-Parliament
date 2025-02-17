@@ -6,11 +6,12 @@ const Footer = () => (
     sx={{
       backgroundColor: "white",
       padding: "5px 20px",
-      position: "fixed",
+      position: "relative",
       bottom: 0,
       width: "100%",
       textAlign: "center",
       boxShadow: "0 -2px 5px rgba(0,0,0,0.1)",
+      marginTop: "auto", // Ensure footer stays at the bottom of the page
     }}
   >
     <Typography variant="body2" color="textSecondary" padding={0.5}>
