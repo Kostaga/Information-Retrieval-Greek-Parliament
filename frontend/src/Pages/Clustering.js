@@ -1,29 +1,22 @@
 import React, {useEffect, useState} from "react";
-import { Typography, Box } from "@mui/material";
+import { Typography, Box, CircularProgress } from "@mui/material";
 
-// const Clustering = () => {
-//   const [plotPath, setPlotPath] = useState("");
-
-//   useEffect(() => {
-//     fetch("http://localhost:5000/clustering", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//     })
-//       .then((response) => response.json())
-//       .then((data) => {
-//         setPlotPath(`http://localhost:5000/${data.plot_path}`);  // Ensure it matches backend
-//       })
-//       .catch((error) => {
-//         console.error("Error:", error);
-//       });
-//   }, []);
 const Clustering = () => {
   const [imageUrl, setImageUrl] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setImageUrl("http://127.0.0.1:5000/clustering"); // Flask endpoint
+    fetch("http://127.0.0.1:5000/clustering")
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        setImageUrl(url);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching clustering image:", error);
+        setLoading(false);
+      });
   }, []);
   
   return (
@@ -49,12 +42,17 @@ const Clustering = () => {
         K-Means Clustering of Speeches
       </Typography>
 
-      {/* Plot Image
-      {plotPath && <img src={plotPath} alt="Cluster Plot" />} */}
-      {imageUrl ? (
-        <img src={imageUrl} alt="Speech Clustering Plot" style={{ width: "80%", border: "2px solid black" }} />
+      {/* Plot Image */}
+      {loading ? (
+        <CircularProgress />
       ) : (
-        <p>Loading...</p>
+        imageUrl && (
+          <img
+            src={imageUrl}
+            alt="Speech Clustering Plot"
+            style={{ width: "60%", border: "2px solid black" }}
+          />
+        )
       )}
     </Box>
   );

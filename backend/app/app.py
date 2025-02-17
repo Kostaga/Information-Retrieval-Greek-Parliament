@@ -56,8 +56,13 @@ def getGroupedData():
 
 @app.route('/similarity', methods=['GET'])
 def compute_similarity():
-    top_similar = get_top_similar_members()
-    print(top_similar)
+    k = request.args.get('k', type=int)  # Get 'k' from URL query params
+
+    # Validate k (ensure it's a positive number)
+    if k is None or k <= 0:
+        return jsonify({"error": "Invalid value for k. Please enter a positive number."}), 400
+
+    top_similar = get_top_similar_members(k)  # Fetch top-k results
     return jsonify(top_similar)
 
 @app.route('/lsi')
@@ -78,10 +83,10 @@ def lsi():
 
 @app.route('/clustering')
 def Clustering():
-    plot_path = clustering.kmeans()
-    if not os.path.exists(plot_path):
-        return "Error: Cluster plot was not generated.", 500  # Return HTTP 500 error
-    return send_file(plot_path, mimetype='image/png')
+    # plot_path = clustering.kmeans()
+    # if not os.path.exists(plot_path):
+    #     return "Error: Cluster plot was not generated.", 500  # Return HTTP 500 error
+    return send_file(os.path.join(os.getcwd(), "cluster_plot.png"), mimetype='image/png')
 
 
 if __name__ == '__main__':

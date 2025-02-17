@@ -8,18 +8,27 @@ const LsiModel = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
-    // Fetch LSI vectors from Flask API
-    fetch("http://localhost:5000/lsi")
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("Fetched data:", data); // Log the fetched data
-        setLsiVectors(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching LSI vectors:", error);
-        setLoading(false);
-      });
+    // Check if the LSI vectors are already cached
+    const cachedLsiVectors = sessionStorage.getItem("lsiVectors");
+    if (cachedLsiVectors) {
+      setLsiVectors(JSON.parse(cachedLsiVectors));
+      setLoading(false);
+    } else {
+      // Fetch LSI vectors from Flask API
+      fetch("http://localhost:5000/lsi")
+        .then((response) => response.json())
+        .then((data) => {
+          console.log("Fetched data:", data); // Log the fetched data
+          setLsiVectors(data);
+          setLoading(false);
+          // Cache the LSI vectors in session storage
+          sessionStorage.setItem("lsiVectors", JSON.stringify(data));
+        })
+        .catch((error) => {
+          console.error("Error fetching LSI vectors:", error);
+          setLoading(false);
+        });
+    }
   }, []);
 
   const handleChangePage = (event, newPage) => {

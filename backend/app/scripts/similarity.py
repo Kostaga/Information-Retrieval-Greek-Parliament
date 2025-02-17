@@ -1,16 +1,8 @@
-import pandas as pd  # to load the dataframe
-import numpy as np
 import spacy
-import json
 from sklearn.metrics.pairwise import cosine_similarity
 # Load spaCy's English language model
 nlp = spacy.load("el_core_news_sm", disable=["parser", "ner", "tok2vec", "tagger", "attribute_ruler", "lemmatizer"])
 from scripts.dataCleaning import create_clean_data
-from gensim import corpora
-from gensim.models import LsiModel
-from gensim.models.coherencemodel import CoherenceModel
-import matplotlib.pyplot as plt
-from concurrent.futures import ThreadPoolExecutor
 from itertools import combinations
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -18,17 +10,16 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 # Load the cleaned data
 df = create_clean_data()
 
-# Group speeches by member and combine them into a single text entry per member
-df_by_member= df.groupby('member_name')['clean_speech']
 
 
-
-def get_top_similar_members():
+def get_top_similar_members(k):
     # Group speeches by member and combine them into a single text entry per member
     df_by_member = df.groupby('member_name')['clean_speech'].apply(lambda x: ' '.join(x))
     
     # Reset index to allow index-based access
     df_by_member = df_by_member.reset_index()
+
+    # Create a TF-IDF vectorizer
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(df_by_member['clean_speech'].tolist())
 
@@ -48,12 +39,12 @@ def get_top_similar_members():
     similarity_scores.sort(key=lambda x: x["score"], reverse=True)
 
     # Get top 3 pairs
-    top_similar_pairs = similarity_scores[:3]
+    top_similar_pairs = similarity_scores[:k]
 
     # Print results
     for pair in top_similar_pairs:
         print(f"Similar pair: {pair['member_1']} & {pair['member_2']} with similarity score: {pair['score']:.4f}")
 
-    return top_similar_pairs  # Convert to JSON format
+    return top_similar_pairs  
 
 

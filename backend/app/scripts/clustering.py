@@ -1,8 +1,6 @@
 import numpy as np
 import os
-import pandas as pd
 from sklearn.cluster import KMeans
-from flask import Flask, send_file
 import matplotlib.pyplot as plt
 from scripts.lsi_model import create_lsi_model, get_lsi_vectors
 
@@ -24,11 +22,8 @@ def plot_inertia(data, max_clusters=10):
     plt.grid(True)
     plt.savefig("inertia_plot.png")
    
-
+#Converts sparse LSI vectors to a dense NumPy array.
 def convert_lsi_vectors_to_dense(lsi_vectors, num_topics):
-    """
-    Converts sparse LSI vectors to a dense NumPy array.
-    """
     dense_vectors = np.zeros((len(lsi_vectors), num_topics))  # Create a zero-filled matrix
     for i, doc in enumerate(lsi_vectors):
         for topic_id, value in doc:
@@ -38,24 +33,18 @@ def convert_lsi_vectors_to_dense(lsi_vectors, num_topics):
 def kmeans():
    
     # Build the LSI model
-    lsi_model, dictionary, doc_term_matrix = create_lsi_model(num_topics=7)
+    lsi_model, dictionary, doc_term_matrix = create_lsi_model(num_topics=2)
 
     # Transform speeches into LSI vectors
     lsi_vectors = get_lsi_vectors(lsi_model, doc_term_matrix)
-    
-
-        
-
 
     # Convert LSI vectors to a dense matrix
-    num_topics = 7  # Set the number of topics
+    num_topics = 2  # Set the number of topics
     lsi_vectors_dense = convert_lsi_vectors_to_dense(lsi_vectors, num_topics)
-    print("LSI Vectors Shape:", lsi_vectors_dense.shape)  # Debugging
 
-    kmeans = KMeans(n_clusters=4, random_state=42, n_init=10, max_iter=100, algorithm="elkan")  
+    kmeans = KMeans(n_clusters=2, random_state=42, n_init=10, max_iter=100, algorithm="elkan")  
 
     labels = kmeans.fit_predict(lsi_vectors_dense)
-    print("Labels Shape:", labels.shape)  # Debugging
 
    
     # Step 5: Plot the Clusters
