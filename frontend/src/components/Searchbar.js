@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { TextField, Button, Box, Typography } from "@mui/material";
 import Results from "./Results";
 import "../App.css";
+import Parliament from "../parliament.png";
 
 const SearchBar = () => {
   // State to handle individual fields
@@ -63,11 +64,19 @@ const SearchBar = () => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          height: "90vh",
           flexDirection: "column",
           padding: 3,
+          marginBottom: "2rem",
         }}
       >
+        <img
+          src={Parliament}
+          alt="Parliament"
+          style={{
+            marginBottom: "1rem",
+            objectFit: "cover",
+          }}
+        />
         <Typography variant="h3" sx={{ marginBottom: 3 }}>
           Search Parliament Speeches by:
         </Typography>

@@ -127,4 +127,4 @@ def group_by_date() -> pd.DataFrame:
 
     return df_filtered
 
-# print(group_by_date())
+

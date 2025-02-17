@@ -63,10 +63,9 @@ const Results = ({ results }) => {
         component={Paper}
         style={{
           width: "100%",
-          maxHeight: "50vh",
+          maxHeight: "40vh",
           overflow: "scroll",
           padding: "1rem",
-          marginBottom: "3rem",
         }}
       >
         <Table>

@@ -29,7 +29,6 @@ const App = () => {
         <Route path="/lsi" element={<LsiModel />} />
         <Route path="/clustering" element={<Clustering />} />
       </Routes>
-      <Footer />
     </Router>
   );
 };

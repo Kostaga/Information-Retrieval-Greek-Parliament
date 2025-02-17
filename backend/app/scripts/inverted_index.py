@@ -1,6 +1,5 @@
 import pandas as pd
 from scripts.dataCleaning import clean_dataset, remove_punctuation_and_numbers
-import pickle
 import math
 from collections import defaultdict
 import os
@@ -9,7 +8,7 @@ from scripts.database import engine, table_exists
 
 
 def create_inverted_index(df) -> dict:
-    '''Creates an inverted index for the cleaned data and saves it to a pickle file'''
+    '''Creates an inverted index for the cleaned data and saves it to the database'''
   
     print("Creating the inverted index...")
     inverted_index = {}
@@ -118,37 +117,6 @@ def save_tf_idf_to_sql(tf_idf, engine):
     df.to_sql('tf_idf', con=engine, if_exists='replace', index=False)
 
 
-# def load_inverted_index_from_sql(engine):
-#     # Load the DataFrame from SQL
-#     df = pd.read_sql('inverted_index', con=engine)
-#     # Convert the DataFrame back to a dictionary
-#     inverted_index = {}
-#     for _, row in df.iterrows():
-#         word = row['word']
-#         doc_id = row['document_id']
-#         term_freq = row['term_frequency']
-#         if word not in inverted_index:
-#             inverted_index[word] = {}
-#         inverted_index[word][doc_id] = term_freq
-#     return inverted_index
-
-
-
-# def load_tf_idf_from_sql(engine):
-#     # Load the DataFrame from SQL
-#     df = pd.read_sql('tf_idf', con=engine)
-#     # Convert the DataFrame back to a dictionary
-#     tf_idf = {}
-#     for _, row in df.iterrows():
-#         doc_id = row['document_id']
-#         word = row['word']
-#         tf_idf_value = row['tf_idf']
-#         if doc_id not in tf_idf:
-#             tf_idf[doc_id] = {}
-#         tf_idf[doc_id][word] = tf_idf_value
-#     return tf_idf
-
-
 def load_inverted_index_from_sql(engine):
     # Query the database directly and load the necessary columns
     query = """
@@ -183,4 +151,3 @@ def load_tf_idf_from_sql(engine):
 
     
     return tf_idf_dict
-    

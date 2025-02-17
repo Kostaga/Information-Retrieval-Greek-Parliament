@@ -11,7 +11,7 @@ const Footer = () => (
       width: "100%",
       textAlign: "center",
       boxShadow: "0 -2px 5px rgba(0,0,0,0.1)",
-      marginTop: "auto", // Ensure footer stays at the bottom of the page
+      marginTop: "2rem", // Ensure footer stays at the bottom of the page
     }}
   >
     <Typography variant="body2" color="textSecondary" padding={0.5}>

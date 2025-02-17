@@ -7,10 +7,6 @@ from scripts.dataCleaning import clean_dataset, remove_punctuation_and_numbers, 
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-
-
-
-
 def search(
     name: str = None,
     date: str = None,
