@@ -17,6 +17,7 @@ backend/app/parliament.csv
 backend/cleaned_data.csv
 backend/app/parliament.db
 backend/instance/
+backend/parliament.db
 backend/app/__pycache__/
 
 

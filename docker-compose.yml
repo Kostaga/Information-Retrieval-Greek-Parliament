@@ -7,7 +7,6 @@ services:
       - "5000:5000"
     volumes:
       - ./backend:/app
-      - ./backend/app/parliament.csv:/app/app/parliament.csv
     environment:
       - FLASK_ENV=development
 
